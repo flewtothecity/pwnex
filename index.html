@@ -162,6 +162,24 @@ players.json format:
     }
     function hideTip(t,tip){tip.classList.remove('visible');}
 
+    .map{
+  position:absolute;
+  top:0; left:0;
+  width:100%; height:100%;
+  background-image: url('pwnex.png');
+  background-size: 100% 100%;
+  display:grid;
+  grid-template-columns: repeat(var(--cols), 1fr);
+  grid-template-rows: repeat(var(--rows), 1fr);
+  gap: var(--gap);
+  transform-origin: center center;
+  cursor: grab;
+
+  /* 🔳 Make zoomed pixels sharp */
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
     // --- Zoom & Pan ---
     function applyTransform(){
       map.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
@@ -219,6 +237,8 @@ players.json format:
     viewport.addEventListener('dblclick',()=>{
       zoom=1; panX=0; panY=0; applyTransform();
     });
+
+    
 
     applyTransform();
   </script>

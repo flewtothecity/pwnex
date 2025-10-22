@@ -162,20 +162,6 @@ players.json format:
     }
     function hideTip(t,tip){tip.classList.remove('visible');}
 
-function showTip(tile, tip) {
-    const x = Number(tile.dataset.x);
-    const y = Number(tile.dataset.y);
-
-    // Calculate Minecraft coordinates based on scaling
-    const minecraftX = (x * 1.095 - 340).toFixed(0);  // Scale and offset for X
-    const minecraftY = -4;  // Fixed Y value
-    const minecraftZ = (y * 1 - 283).toFixed(0);  // Scale and offset for Z
-
-    // Update the tooltip to show Minecraft coordinates
-    tip.innerHTML = `x: ${minecraftX} y: ${minecraftY} z: ${minecraftZ}`;
-    tip.classList.add('visible');
-}
-
 }
     // --- Zoom & Pan ---
     function applyTransform(){

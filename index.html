@@ -162,24 +162,21 @@ players.json format:
     }
     function hideTip(t,tip){tip.classList.remove('visible');}
 
-    .map{
-  position:absolute;
-  top:0; left:0;
-  width:100%; height:100%;
-  background-image: url('pwnex.png');
-  background-size: 100% 100%;
-  display:grid;
-  grid-template-columns: repeat(var(--cols), 1fr);
-  grid-template-rows: repeat(var(--rows), 1fr);
-  gap: var(--gap);
-  transform-origin: center center;
-  cursor: grab;
+function showTip(tile, tip) {
+    const x = Number(tile.dataset.x);
+    const y = Number(tile.dataset.y);
 
-  /* 🔳 Make zoomed pixels sharp */
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
+    // Calculate Minecraft coordinates based on scaling
+    const minecraftX = (x * 1.095 - 340).toFixed(0);  // Scale and offset for X
+    const minecraftY = -4;  // Fixed Y value
+    const minecraftZ = (y * 1 - 283).toFixed(0);  // Scale and offset for Z
+
+    // Update the tooltip to show Minecraft coordinates
+    tip.innerHTML = `x: ${minecraftX} y: ${minecraftY} z: ${minecraftZ}`;
+    tip.classList.add('visible');
 }
 
+}
     // --- Zoom & Pan ---
     function applyTransform(){
       map.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;

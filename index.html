@@ -1,0 +1,244 @@
+<!--
+Interactive Map (30 x 33) with Zoom & Pan — single-file website
+
+How to use:
+1. Save this file as `index.html` next to `pwnex.png` (map image) and `players.json` (data).
+2. Hosting works the same as before — GitHub Pages, Netlify, etc.
+
+Zoom & Pan Controls:
+- 🖱️ Scroll or pinch to zoom in/out.
+- 🖱️ Click and drag (or touch drag) to pan.
+- 🔄 Double-click background to reset zoom.
+
+players.json format:
+[
+  { "name": "Sonsy", "lastActive": "2h ago", "x": 2, "y": 3 }
+]
+-->
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Interactive Player Map — Zoom & Pan</title>
+  <style>
+    :root{
+      --cols: 30;
+      --rows: 33;
+      --gap: 0px;
+    }
+
+    html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial}
+    body{background:#0b0b0b;color:#eee;display:flex;flex-direction:column;align-items:center;gap:12px;padding:18px;overflow:hidden;}
+
+    .site-wrap{max-width:1200px;width:100%;display:flex;flex-direction:column;align-items:center}
+    h1{font-size:18px;margin:6px 0}
+    p.help{font-size:13px;color:#cfcfcf;margin:0 0 8px}
+
+    .viewport {
+      width: min(95vw, 1000px);
+      height: calc(min(95vw, 1000px) * (33/30)); /* keep aspect ratio */
+      overflow: hidden;
+      position: relative;
+      border: 6px solid rgba(255,255,255,0.03);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+      touch-action: none;
+    }
+
+    .map{
+  position:absolute;
+  top:0; left:0;
+  width:100%; height:100%;
+  background-image: url('pwnex.png');
+  background-size: 100% 100%;
+  display:grid;
+  grid-template-columns: repeat(var(--cols), 1fr);
+  grid-template-rows: repeat(var(--rows), 1fr);
+  gap: var(--gap);
+  transform-origin: center center;
+  cursor: grab;
+
+  /* 🔳 Make zoomed pixels sharp */
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+    .map.dragging { cursor: grabbing; }
+
+    .tile{position:relative;cursor:crosshair;}
+    .tooltip{
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      top: -38px;
+      background: rgba(0,0,0,0.75);
+      color: #fff;
+      padding: 6px 8px;
+      border-radius: 6px;
+      font-size: 13px;
+      white-space: nowrap;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.7);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 120ms ease, transform 120ms ease;
+      z-index: 5;
+    }
+    .tooltip.visible{opacity:1;transform: translateX(-50%) translateY(-6px)}
+
+    .tooltip::after{
+      content:'';position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);
+      border:6px solid transparent;border-top-color: rgba(0,0,0,0.75);
+    }
+
+    .tile::before{content:'';position:absolute;inset:0;background:transparent;transition:background 120ms ease;pointer-events:none;}
+    .tile:hover::before{background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));}
+
+    .footer{font-size:13px;color:#bfc7c7;margin-top:8px}
+    code{background:#0f0f0f;padding:2px 6px;border-radius:4px;font-size:12px}
+
+    @media (max-width:720px){.tooltip{font-size:12px}}
+  </style>
+</head>
+<body>
+  <div class="site-wrap">
+    <h1>Interactive Player Map — Zoom & Pan</h1>
+    <p class="help">Hover tiles to see player info. Scroll or pinch to zoom. Drag to move. Double-click to reset.</p>
+    <div class="viewport" id="viewport">
+      <div id="map" class="map"></div>
+    </div>
+    <div class="footer">Coordinates: <code>x</code> 0–29, <code>y</code> 0–32. Update players via <code>players.json</code>.</div>
+  </div>
+
+  <script>
+    const MAP_FILENAME = 'pwnex.png';
+    const COLS = 30;
+    const ROWS = 33;
+    const playersJsonPath = './players.json';
+    const samplePlayers = [
+      { name: 'Sonsy', lastActive: 'Online', x: 15, y: 10 },
+      { name: 'Kuronaoki', lastActive: '5d ago', x: 6, y: 12 },
+      { name: 'Nexus', lastActive: '2h ago', x: 20, y: 5 }
+    ];
+
+    function makeLookup(arr){
+      const m = new Map();
+      for(const p of arr){ m.set(`${p.x},${p.y}`, p); }
+      return m;
+    }
+
+    let zoom = 1, panX = 0, panY = 0;
+    const zoomMin = 0.8, zoomMax = 4;
+
+    const viewport = document.getElementById('viewport');
+    const map = document.getElementById('map');
+
+    for(let y=0;y<ROWS;y++){
+      for(let x=0;x<COLS;x++){
+        const tile=document.createElement('div');
+        tile.className='tile';
+        tile.dataset.x=x; tile.dataset.y=y;
+        const tip=document.createElement('div');
+        tip.className='tooltip';
+        tip.textContent=`x:${x} y:${y}`;
+        tile.appendChild(tip);
+        tile.addEventListener('mouseenter',()=>showTip(tile,tip));
+        tile.addEventListener('mouseleave',()=>hideTip(tile,tip));
+        map.appendChild(tile);
+      }
+    }
+
+    fetch(playersJsonPath,{cache:'no-store'})
+      .then(r=>r.ok?r.json():Promise.reject())
+      .then(d=>window.__playerLookup=makeLookup(d))
+      .catch(()=>window.__playerLookup=makeLookup(samplePlayers));
+
+    function showTip(tile, tip) {
+  const x = Number(tile.dataset.x);
+  const y = Number(tile.dataset.y);
+  const p = window.__playerLookup?.get(`${x},${y}`);
+
+  // Calculate Minecraft coordinates
+  const minecraftX = (x * 1.095 - 340).toFixed(0);  // Scale and offset for X
+  const minecraftY = -4;  // Fixed Y value
+  const minecraftZ = (y * 1 - 283).toFixed(0);      // Scale and offset for Z
+
+  // Combine player info + coordinates
+  if (p) {
+    tip.innerHTML = `
+      <strong>${p.name}</strong> — ${p.lastActive}<br>
+      <small>x: ${minecraftX} y: ${minecraftY} z: ${minecraftZ}</small>
+    `;
+  } else {
+    tip.innerHTML = `
+      x: ${minecraftX} y: ${minecraftY} z: ${minecraftZ}
+    `;
+  }
+
+  tip.classList.add('visible');
+}
+
+function hideTip(t,tip){tip.classList.remove('visible');}
+
+    // --- Zoom & Pan ---
+    function applyTransform(){
+      map.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+    }
+
+    viewport.addEventListener('wheel', e => {
+      e.preventDefault();
+      const scaleAmount = e.deltaY < 0 ? 1.1 : 0.9;
+      const newZoom = Math.min(zoomMax, Math.max(zoomMin, zoom * scaleAmount));
+      zoom = newZoom;
+      applyTransform();
+    }, { passive: false });
+
+    let isDragging=false, startX=0, startY=0;
+
+    viewport.addEventListener('mousedown', e=>{
+      isDragging=true; startX=e.clientX-panX; startY=e.clientY-panY;
+      map.classList.add('dragging');
+    });
+    viewport.addEventListener('mouseup',()=>{isDragging=false;map.classList.remove('dragging');});
+    viewport.addEventListener('mouseleave',()=>{isDragging=false;map.classList.remove('dragging');});
+    viewport.addEventListener('mousemove', e=>{
+      if(!isDragging)return;
+      panX=e.clientX-startX; panY=e.clientY-startY;
+      applyTransform();
+    });
+
+    // touch drag support
+    let touchStart=null;
+    viewport.addEventListener('touchstart', e=>{
+      if(e.touches.length===1){
+        const t=e.touches[0]; touchStart={x:t.clientX-panX, y:t.clientY-panY};
+      }
+    });
+    viewport.addEventListener('touchmove', e=>{
+      if(e.touches.length===1 && touchStart){
+        const t=e.touches[0];
+        panX=t.clientX-touchStart.x; panY=t.clientY-touchStart.y;
+        applyTransform();
+      } else if(e.touches.length===2){
+        const [a,b]=e.touches;
+        const dist=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);
+        if(!viewport._lastDist) viewport._lastDist=dist;
+        else {
+          const diff=dist/viewport._lastDist;
+          zoom=Math.min(zoomMax,Math.max(zoomMin,zoom*diff));
+          viewport._lastDist=dist;
+          applyTransform();
+        }
+      }
+    });
+    viewport.addEventListener('touchend',()=>{viewport._lastDist=null;});
+
+    // Double click to reset zoom
+    viewport.addEventListener('dblclick',()=>{
+      zoom=1; panX=0; panY=0; applyTransform();
+    });
+
+    applyTransform();
+  </script>
+</body>
+</html>

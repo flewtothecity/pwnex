@@ -1,21 +1,3 @@
-<!--
-Interactive Map (30 x 33) with Zoom & Pan — single-file website
-
-How to use:
-1. Save this file as `index.html` next to `pwnex.png` (map image) and `players.json` (data).
-2. Hosting works the same as before — GitHub Pages, Netlify, etc.
-
-Zoom & Pan Controls:
-- 🖱️ Scroll or pinch to zoom in/out.
-- 🖱️ Click and drag (or touch drag) to pan.
-- 🔄 Double-click background to reset zoom.
-
-players.json format:
-[
-  { "name": "Sonsy", "lastActive": "2h ago", "x": 2, "y": 3 }
-]
--->
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -38,7 +20,8 @@ players.json format:
 
     .viewport {
       width: min(95vw, 1000px);
-      height: calc(min(95vw, 1000px) * (33/30)); /* keep aspect ratio */
+      /* keep aspect ratio matching 32 cols x 33 rows */
+      height: calc(min(95vw, 1000px) * (33/32));
       overflow: hidden;
       position: relative;
       border: 6px solid rgba(255,255,255,0.03);
@@ -47,22 +30,21 @@ players.json format:
     }
 
     .map{
-  position:absolute;
-  top:0; left:0;
-  width:100%; height:100%;
-  background-image: url('pwnex.png');
-  background-size: 100% 100%;
-  display:grid;
-  grid-template-columns: repeat(var(--cols), 1fr);
-  grid-template-rows: repeat(var(--rows), 1fr);
-  gap: var(--gap);
-  transform-origin: center center;
-  cursor: grab;
+      position:absolute;
+      top:0; left:0;
+      width:100%; height:100%;
+      background-image: url('pwnex.png');
+      background-size: 100% 100%;
+      display:grid;
+      grid-template-columns: repeat(var(--cols), 1fr);
+      grid-template-rows: repeat(var(--rows), 1fr);
+      gap: var(--gap);
+      transform-origin: center center;
+      cursor: grab;
 
-  /* 🔳 Make zoomed pixels sharp */
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
-}
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
 
     .map.dragging { cursor: grabbing; }
 
@@ -107,12 +89,12 @@ players.json format:
     <div class="viewport" id="viewport">
       <div id="map" class="map"></div>
     </div>
-    <div class="footer">Coordinates: <code>x</code> 0–29, <code>y</code> 0–32. Update players via <code>players.json</code>.</div>
+    <div class="footer">Coordinates: <code>x</code> 0–31, <code>y</code> 0–32. Update players via <code>players.json</code>.</div>
   </div>
 
   <script>
     const MAP_FILENAME = 'pwnex.png';
-    const COLS = 30;
+    const COLS = 32; // <-- IMPORTANT: changed to 32 columns
     const ROWS = 33;
     const playersJsonPath = './players.json';
     const samplePlayers = [
@@ -133,6 +115,7 @@ players.json format:
     const viewport = document.getElementById('viewport');
     const map = document.getElementById('map');
 
+    // create tiles matching the grid (now 32 x 33)
     for(let y=0;y<ROWS;y++){
       for(let x=0;x<COLS;x++){
         const tile=document.createElement('div');
@@ -154,36 +137,32 @@ players.json format:
       .catch(()=>window.__playerLookup=makeLookup(samplePlayers));
 
     function showTip(tile, tip) {
-  const x = Number(tile.dataset.x);
-  const y = Number(tile.dataset.y);
-  const p = window.__playerLookup?.get(`${x},${y}`);
+      const x = Number(tile.dataset.x);
+      const y = Number(tile.dataset.y);
+      const p = window.__playerLookup?.get(`${x},${y}`);
 
-  // Calculate Minecraft coordinates
-  const minecraftX = (x * 1.095 - 340).toFixed(0);  // Scale and offset for X
-  const minecraftY = -4;  // Fixed Y value
-  const minecraftZ = (y * 1 - 283).toFixed(0);      // Scale and offset for Z
+      // Minecraft coords (kept as original scaling for now)
+      const minecraftX = (x * 1.095 - 340).toFixed(0);
+      const minecraftY = -4;
+      const minecraftZ = (y * 1 - 283).toFixed(0);
 
-  // Combine player info + coordinates
-  if (p) {
-    tip.innerHTML = `
-      <strong>${p.name}</strong> — ${p.lastActive}<br>
-      <small>x: ${minecraftX} y: ${minecraftY} z: ${minecraftZ}</small>
-    `;
-  } else {
-    tip.innerHTML = `
-      x: ${minecraftX} y: ${minecraftY} z: ${minecraftZ}
-    `;
-  }
+      if (p) {
+        tip.innerHTML = `
+          <strong>${p.name}</strong> — ${p.lastActive}<br>
+          <small>x: ${minecraftX} y: ${minecraftY} z: ${minecraftZ}</small>
+        `;
+      } else {
+        tip.innerHTML = `
+          x: ${minecraftX} y: ${minecraftY} z: ${minecraftZ}
+        `;
+      }
 
-  tip.classList.add('visible');
-}
-
-function hideTip(t,tip){tip.classList.remove('visible');}
-
-    // --- Zoom & Pan ---
-    function applyTransform(){
-      map.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+      tip.classList.add('visible');
     }
+
+    function hideTip(t,tip){tip.classList.remove('visible');}
+
+    function applyTransform(){ map.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`; }
 
     viewport.addEventListener('wheel', e => {
       e.preventDefault();
@@ -207,7 +186,7 @@ function hideTip(t,tip){tip.classList.remove('visible');}
       applyTransform();
     });
 
-    // touch drag support
+    // touch support
     let touchStart=null;
     viewport.addEventListener('touchstart', e=>{
       if(e.touches.length===1){
@@ -233,7 +212,6 @@ function hideTip(t,tip){tip.classList.remove('visible');}
     });
     viewport.addEventListener('touchend',()=>{viewport._lastDist=null;});
 
-    // Double click to reset zoom
     viewport.addEventListener('dblclick',()=>{
       zoom=1; panX=0; panY=0; applyTransform();
     });

@@ -93,6 +93,9 @@ players.json format:
 
     .tile::before{content:'';position:absolute;inset:0;background:transparent;transition:background 120ms ease;pointer-events:none;}
     .tile:hover::before{background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));}
+    .tile:hover { z-index: 2; }
+.tile[style*="red"] { box-shadow: 0 0 8px rgba(255,0,0,0.7); }
+.tile[style*="hotpink"] { box-shadow: 0 0 8px rgba(255,105,180,0.7); }
 
     .footer{font-size:13px;color:#bfc7c7;margin-top:8px}
     code{background:#0f0f0f;padding:2px 6px;border-radius:4px;font-size:12px}
@@ -158,28 +161,51 @@ players.json format:
   const y = Number(tile.dataset.y);
   const p = window.__playerLookup?.get(`${x},${y}`);
 
-  // Calculate Minecraft coordinates
-  const minecraftX = (x * 1.095 - 340).toFixed(0);  // Scale and offset for X
-  const minecraftY = -4;  // Fixed Y value
-  const minecraftZ = (y * 1 - 283).toFixed(0);      // Scale and offset for Z
+  // Convert grid coordinates to letter-number (A1, B4, etc.)
+  const tileLetter = String.fromCharCode(65 + y); // 65 = 'A'
+  const tileNumber = x + 1;
+  const tileLabel = `${tileLetter}${tileNumber}`;
 
-  // Combine player info + coordinates
+  // Minecraft coordinates (your offsets)
+  const minecraftX = (x * 1.095 - 340).toFixed(0);
+  const minecraftY = -4;
+  const minecraftZ = (y * 1 - 283).toFixed(0);
+
+  // Detect inactivity and ownership
+  let nameHtml = '';
   if (p) {
-    tip.innerHTML = `
-      <strong>${p.name}</strong> — ${p.lastActive}<br>
-      <small>x: ${minecraftX} y: ${minecraftY} z: ${minecraftZ}</small>
-    `;
+    const inactive = /(\d+)m/.test(p.lastActive) && parseInt(p.lastActive) >= 1;
+    const isUnowned = /UNOWNED|UNOOWNED|VACANT/i.test(p.name);
+
+    let color = '#fff';
+    if (inactive) color = 'red';
+    if (isUnowned) color = 'hotpink';
+
+    nameHtml = `<strong style="color:${color}">${p.name}</strong> — ${p.lastActive}`;
   } else {
-    tip.innerHTML = `
-      x: ${minecraftX} y: ${minecraftY} z: ${minecraftZ}
-    `;
+    nameHtml = `<strong style="color:hotpink">Unowned</strong>`;
   }
+
+  tip.innerHTML = `
+    <div style="font-weight:bold;font-size:12px;margin-bottom:3px;">${tileLabel}</div>
+    ${nameHtml}<br>
+    <small>x: ${minecraftX} y: ${minecraftY} z: ${minecraftZ}</small>
+  `;
+
+  // Highlight inactive/unowned tile visually
+  tile.style.outline = '';
+  if (p && /(\d+)m/.test(p.lastActive) && parseInt(p.lastActive) >= 1)
+    tile.style.outline = '2px solid red';
+  else if (p && /UNOWNED|UNOOWNED|VACANT/i.test(p.name))
+    tile.style.outline = '2px solid hotpink';
 
   tip.classList.add('visible');
 }
 
-function hideTip(t,tip){tip.classList.remove('visible');}
-
+function hideTip(tile, tip) {
+  tip.classList.remove('visible');
+  tile.style.outline = '';
+}
     // --- Zoom & Pan ---
     function applyTransform(){
       map.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;

@@ -96,7 +96,7 @@ players.json format:
     .tile:hover { z-index: 2; }
 .tile[style*="red"] { box-shadow: 0 0 8px rgba(255,0,0,0.7); }
 .tile[style*="hotpink"] { box-shadow: 0 0 8px rgba(255,105,180,0.7); }
-.tile[style*="green"] { box-shadow: 0 0 8px rgba(0,255,35,0.5); }
+
     .footer{font-size:13px;color:#bfc7c7;margin-top:8px}
     code{background:#0f0f0f;padding:2px 6px;border-radius:4px;font-size:12px}
 
@@ -176,12 +176,12 @@ players.json format:
   if (p) {
     const inactive = /(\d+)m/.test(p.lastActive) && parseInt(p.lastActive) >= 1;
     const isUnowned = /UNOWNED|UNOOWNED|VACANT/i.test(p.name);
-    const isPreBuilt = /PREBUILT|PREBUILD/i.test(p.name);
+  
 
     let color = '#fff';
     if (inactive) color = 'red';
     if (isUnowned) color = 'hotpink';
-    if (isPreBuilt) color = 'green';
+ 
 
     nameHtml = `<strong style="color:${color}">${p.name}</strong> — ${p.lastActive}`;
   } else {
@@ -202,8 +202,7 @@ players.json format:
     tile.style.outline = '2px solid red';
   else if (p && /UNOWNED|UNOOWNED|VACANT/i.test(p.name))
     tile.style.outline = '2px solid hotpink';
-else if (p && /PREBUILT|PREBUILD/i.test(p.name))
-    tile.style.outline = '2px solid green';
+
   tip.classList.add('visible');
 }
 

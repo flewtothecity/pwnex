@@ -93,9 +93,22 @@ players.json format:
 
     .tile::before{content:'';position:absolute;inset:0;background:transparent;transition:background 120ms ease;pointer-events:none;}
     .tile:hover::before{background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));}
-.tile:hover { z-index: 2; }
-.tile[style*="red"] { box-shadow: 0 0 8px rgba(255,0,0,0.7); }
-.tile[style*="hotpink"] { box-shadow: 0 0 8px rgba(255,105,180,0.7); }
+.tile:hover { 
+  z-index: 2; 
+}
+
+.tile[style*="red"] { 
+  box-shadow: 0 0 8px rgba(255,0,0,0.7); 
+}
+
+.tile[style*="hotpink"] { 
+  box-shadow: 0 0 8px rgba(255,105,180,0.7); 
+}
+
+/* ✅ New rule for Prebuilt (green) tiles */
+.tile[style*="limegreen"] {
+  box-shadow: 0 0 8px rgba(50,205,50,0.7);
+}
     .footer{font-size:13px;color:#bfc7c7;margin-top:8px}
     code{background:#0f0f0f;padding:2px 6px;border-radius:4px;font-size:12px}
 
@@ -170,15 +183,17 @@ players.json format:
   const minecraftY = -4;
   const minecraftZ = (y * 1 - 283).toFixed(0);
 
-  // Detect inactivity and ownership
+  // Detect inactivity, ownership, and prebuilt status
   let nameHtml = '';
   if (p) {
     const inactive = /(\d+)m/.test(p.lastActive) && parseInt(p.lastActive) >= 1;
     const isUnowned = /UNOWNED|UNOOWNED|VACANT/i.test(p.name);
+    const isPrebuilt = /PREBUILT/i.test(p.name);
 
     let color = '#fff';
     if (inactive) color = 'red';
     if (isUnowned) color = 'hotpink';
+    if (isPrebuilt) color = 'limegreen'; // <-- Prebuilt detection
 
     nameHtml = `<strong style="color:${color}">${p.name}</strong> — ${p.lastActive}`;
   } else {
@@ -191,12 +206,14 @@ players.json format:
     <small>x: ${minecraftX} y: ${minecraftY} z: ${minecraftZ}</small>
   `;
 
-  // Highlight inactive/unowned tile visually
+  // Highlight inactive/unowned/prebuilt tile visually
   tile.style.outline = '';
   if (p && /(\d+)m/.test(p.lastActive) && parseInt(p.lastActive) >= 1)
     tile.style.outline = '2px solid red';
   else if (p && /UNOWNED|UNOOWNED|VACANT/i.test(p.name))
     tile.style.outline = '2px solid hotpink';
+  else if (p && /PREBUILT/i.test(p.name))
+    tile.style.outline = '2px solid limegreen'; // <-- Outline for prebuilt
 
   tip.classList.add('visible');
 }

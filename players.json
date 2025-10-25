@@ -301,7 +301,7 @@
   },
   {
     "name": "unowned",
-    "lastActive": "1m 5d",
+    "lastActive": "",
     "x": 20,
     "y": 1
   },
@@ -492,13 +492,13 @@
     "y": 2
   },
   {
-    "name": "UNOWNED",
+    "name": "unowned",
     "lastActive": "",
     "x": 22,
     "y": 2
   },
   {
-    "name": "unnowned",
+    "name": "unowned",
     "lastActive": "",
     "x": 23,
     "y": 2
@@ -1033,7 +1033,7 @@
   },
   {
     "name": "unowned",
-    "lastActive": "1m 3d",
+    "lastActive": "",
     "x": 22,
     "y": 5
   },
@@ -1933,7 +1933,7 @@
   },
   {
     "name": "unowned",
-    "lastActive": "3m 19d",
+    "lastActive": "",
     "x": 22,
     "y": 10
   },
